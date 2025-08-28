@@ -1,0 +1,52 @@
+    name: Check for Android Studio Updates
+
+    on:
+      # Allows you to run this workflow manually from the Actions tab
+      workflow_dispatch:
+      # Runs automatically every day at 4:00 AM UTC
+      schedule:
+        - cron: '0 4 * * *'
+
+    jobs:
+      update-spec-file:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout repository
+            uses: actions/checkout@v4
+
+          - name: Check for new version and update spec file
+            run: |
+              SPEC_FILE="android-studio.spec"
+              
+              # Get latest version from the website's HTML
+              LATEST_VERSION=$(curl -s https://developer.android.com/studio | grep -oP 'data-version="\K[0-9]{4}\.[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n1)
+              
+              if [ -z "$LATEST_VERSION" ]; then
+                echo "Failed to fetch the latest version. Exiting."
+                exit 1
+              fi
+              
+              echo "Latest available version is: $LATEST_VERSION"
+              
+              # Get the version currently in the spec file
+              CURRENT_VERSION=$(grep -i "^Version:" $SPEC_FILE | awk '{print $2}')
+              echo "Current spec file version is: $CURRENT_VERSION"
+              
+              if [ "$LATEST_VERSION" == "$CURRENT_VERSION" ]; then
+                echo "Version is already up to date."
+                exit 0
+              fi
+              
+              echo "New version found. Updating spec file..."
+              sed -i "s/^Version:.*/Version:        $LATEST_VERSION/" $SPEC_FILE
+              
+              # Configure git
+              git config --global user.name 'GitHub Actions'
+              git config --global user.email 'actions@github.com'
+              
+              # Commit and push the changes
+              git add $SPEC_FILE
+              git commit -m "Auto-update to version $LATEST_VERSION"
+              git push
+              echo "Pushed updated spec file to repository."
+    
