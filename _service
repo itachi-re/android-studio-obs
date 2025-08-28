@@ -1,0 +1,24 @@
+<services>
+  <service name="obs_scm">
+    <param name="scm">git</param>
+    <param name="url">https://github.com/itachi-re/android-studio-obs.git</param> <!-- Replace with your git repo -->
+    <param name="revision">main</param>
+    <param name="extract">android-studio.spec</param>
+  </service>
+  <service name="tar_scm" mode="disabled"/>
+  <service name="recompress" mode="disabled"/>
+  <service name="set_source_date" mode="disabled"/>
+  <service name="extract_file" mode="disabled"/>
+  <service name="download_files" mode="disabled"/>
+  <service name="obs_copyright" mode="disabled"/>
+
+  <service name="download_url" mode="update">
+    <param name="url">https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=android-studio</param>
+    <param name="download-filename">PKGBUILD</param>
+    <param name="version-xsl">
+<![CDATA[
+      //packages/package/version/text()
+]]>
+    </param>
+  </service>
+</services>
