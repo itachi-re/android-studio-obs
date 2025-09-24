@@ -16,50 +16,51 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Update spec file and commit changes
+     - name: Update spec file and commit changes
         run: |
-  SPEC_FILE="android-studio.spec"
-  
-  echo "Attempting to fetch the latest Android Studio version..."
-  # --- NEW ROBUST SCRIPT ---
-  # Method 1: Look for the version in the main page header (often stable)
-  LATEST_VERSION=$(curl -s https://developer.android.com/studio | grep -oP '(?<=<h2 class="devsite-page-header">Android Studio )\d{4}\.\d+\.\d+' | head -1)
+          # Make sure this line and all subsequent script lines are indented
+          SPEC_FILE="android-studio.spec"
+          
+          echo "Attempting to fetch the latest Android Studio version..."
+          # --- NEW ROBUST SCRIPT ---
+          # Method 1: Look for the version in the main page header (often stable)
+          LATEST_VERSION=$(curl -s https://developer.android.com/studio | grep -oP '(?<=<h2 class="devsite-page-header">Android Studio )\d{4}\.\d+\.\d+' | head -1)
 
-  # Method 2 (Fallback): Look for a data-version attribute
-  if [ -z "$LATEST_VERSION" ]; then
-    echo "Method 1 failed. Trying fallback..."
-    LATEST_VERSION=$(curl -s https://developer.android.com/studio | grep -oP 'data-version="\K[0-9]{4}\.[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n1)
-  fi
-  # --- END OF NEW SCRIPT ---
+          # Method 2 (Fallback): Look for a data-version attribute
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "Method 1 failed. Trying fallback..."
+            LATEST_VERSION=$(curl -s https://developer.android.com/studio | grep -oP 'data-version="\K[0-9]{4}\.[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n1)
+          fi
+          # --- END OF NEW SCRIPT ---
 
-  if [ -z "$LATEST_VERSION" ]; then
-    echo "All methods failed to fetch the latest version. Exiting."
-    exit 1
-  fi
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "All methods failed to fetch the latest version. Exiting."
+            exit 1
+          fi
 
-  echo "Latest available version is: $LATEST_VERSION"
+          echo "Latest available version is: $LATEST_VERSION"
 
-  CURRENT_VERSION=$(grep -i "^Version:" $SPEC_FILE | awk '{print $2}')
-  echo "Current spec file version is: $CURRENT_VERSION"
+          CURRENT_VERSION=$(grep -i "^Version:" $SPEC_FILE | awk '{print $2}')
+          echo "Current spec file version is: $CURRENT_VERSION"
 
-  if [ "$LATEST_VERSION" == "$CURRENT_VERSION" ]; then
-    echo "Version is already up to date."
-    exit 0
-  fi
+          if [ "$LATEST_VERSION" == "$CURRENT_VERSION" ]; then
+            echo "Version is already up to date."
+            exit 0
+          fi
 
-  echo "New version found. Updating spec file..."
-  sed -i "s/^Version:.*/Version:        $LATEST_VERSION/" $SPEC_FILE
+          echo "New version found. Updating spec file..."
+          sed -i "s/^Version:.*/Version:        $LATEST_VERSION/" $SPEC_FILE
 
-  # Configure git
-  git config --global user.name 'GitHub Actions'
-  git config --global user.email 'github-actions@github.com'
+          # Configure git
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'github-actions@github.com'
 
-  # Commit and push changes if the file was modified
-  if ! git diff --quiet $SPEC_FILE; then
-    echo "Committing and pushing changes..."
-    git add $SPEC_FILE
-    git commit -m "chore(version): Bump Android Studio to $LATEST_VERSION"
-    git push
-  else
-    echo "No changes to commit, despite version difference. Check script."
-  fi
+          # Commit and push changes if the file was modified
+          if ! git diff --quiet $SPEC_FILE; then
+            echo "Committing and pushing changes..."
+            git add $SPEC_FILE
+            git commit -m "chore(version): Bump Android Studio to $LATEST_VERSION"
+            git push
+          else
+            echo "No changes to commit, despite version difference. Check script."
+          fi
