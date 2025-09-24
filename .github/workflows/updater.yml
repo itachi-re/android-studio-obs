@@ -84,6 +84,12 @@ jobs:
             exit 1
           fi
 
+          # Check if spec file exists
+          if [ ! -f "$SPEC_FILE" ]; then
+            echo "ERROR: Spec file not found: $SPEC_FILE"
+            exit 1
+          fi
+
           # Get current version from spec file (trim whitespace)
           CURRENT_VERSION=$(grep -i "^Version:" "$SPEC_FILE" | awk '{print $2}' | tr -d '[:space:]')
           echo "Current spec file version: $CURRENT_VERSION"
@@ -95,14 +101,34 @@ jobs:
           fi
 
           echo "New version found. Updating spec file..."
-          sed -i "s/^Version:.*/Version:        $LATEST_VERSION/" "$SPEC_FILE"
+          echo "Before update - Version line:"
+          grep -i "^Version:" "$SPEC_FILE" | cat -A
 
-          # Verify the update
-          UPDATED_VERSION=$(grep -i "^Version:" "$SPEC_FILE" | awk '{print $2}' | tr -d '[:space:]')
+          # Create backup
+          cp "$SPEC_FILE" "${SPEC_FILE}.backup"
+
+          # Update the spec file with the new version (fixed sed command)
+          sed -i "s/^Version:.*/Version: $LATEST_VERSION/" "$SPEC_FILE"
+
+          echo "After update - Version line:"
+          grep -i "^Version:" "$SPEC_FILE" | cat -A
+
+          # Verify the update with more robust parsing
+          UPDATED_VERSION=$(grep -i "^Version:" "$SPEC_FILE" | sed 's/^[Vv]ersion:[[:space:]]*//' | tr -d '[:space:]')
+          echo "Extracted updated version: '$UPDATED_VERSION'"
+          echo "Expected version: '$LATEST_VERSION'"
+
           if [ "$UPDATED_VERSION" != "$LATEST_VERSION" ]; then
             echo "ERROR: Failed to update spec file correctly."
+            echo "Full version line after update:"
+            grep -i "^Version:" "$SPEC_FILE"
+            # Restore backup
+            mv "${SPEC_FILE}.backup" "$SPEC_FILE"
             exit 1
           fi
+
+          # Remove backup on success
+          rm -f "${SPEC_FILE}.backup"
 
           # Configure git
           git config --global user.name 'GitHub Actions'
@@ -116,5 +142,7 @@ jobs:
             git push
           else
             echo "WARNING: No changes detected in spec file despite version difference."
+            echo "Git diff output:"
+            git diff "$SPEC_FILE"
             exit 1
           fi
