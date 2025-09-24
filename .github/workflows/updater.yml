@@ -22,7 +22,7 @@ jobs:
       - name: Set up environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl jq # Install jq for JSON parsing if needed
+          sudo apt-get install -y curl jq # jq for potential future JSON use
 
       - name: Update spec file and commit changes
         env:
@@ -32,38 +32,59 @@ jobs:
           
           echo "Fetching the latest Android Studio version..."
 
-          # Attempt to fetch version using multiple methods
-          LATEST_VERSION=""
-          
-          # Method 1: Scrape version from the main page header
-          LATEST_VERSION=$(curl -s --retry 3 --retry-delay 5 https://developer.android.com/studio | grep -oP '(?<=<h2 class="devsite-page-header">Android Studio )\d{4}\.\d+\.\d+' | head -1)
+          # Temporary debug: Save page content for inspection if needed
+          curl -s https://developer.android.com/studio/releases > releases.html
+          curl -s https://developer.android.com/studio > studio.html
 
-          # Method 2: Fallback to data-version attribute
+          # Method 1: Scrape from releases page header (most reliable for latest stable)
+          LATEST_VERSION=$(curl -s --retry 3 --retry-delay 5 https://developer.android.com/studio/releases \
+            | grep -oP 'Android Studio \K(\d{4}\.\d+\.\d+)' \
+            | head -1)
+
+          # Method 2: Fallback to main studio page header
           if [ -z "$LATEST_VERSION" ]; then
-            echo "Method 1 failed. Trying fallback (data-version attribute)..."
-            LATEST_VERSION=$(curl -s --retry 3 --retry-delay 5 https://developer.android.com/studio | grep -oP 'data-version="\K[0-9]{4}\.[0-9]+\.[0-9]+' | sort -V | tail -n1)
+            echo "Method 1 failed. Trying main page header..."
+            LATEST_VERSION=$(curl -s --retry 3 --retry-delay 5 https://developer.android.com/studio \
+              | grep -oP 'Android Studio \K(\d{4}\.\d+\.\d+)' \
+              | head -1)
           fi
 
-          # Method 3: Fallback to release notes or API if available
+          # Method 3: Fallback to download filename pattern on main page (includes patch if available)
           if [ -z "$LATEST_VERSION" ]; then
-            echo "Method 2 failed. Trying release notes page..."
-            LATEST_VERSION=$(curl -s --retry 3 --retry-delay 5 https://developer.android.com/studio/releases | grep -oP 'Android Studio \d{4}\.\d+\.\d+' | head -1 | grep -oP '\d{4}\.\d+\.\d+')
+            echo "Method 2 failed. Trying download filename..."
+            LATEST_VERSION=$(curl -s --retry 3 --retry-delay 5 https://developer.android.com/studio \
+              | grep -oP 'android-studio-\K\d{4}\.\d+\.\d+(?:\.\d+)?' \
+              | sort -V | head -1 \
+              | cut -d. -f1-3)  # Trim to major.minor.patch if extra patch present
           fi
+
+          # Method 4: Broad fallback from releases page table or any mention
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "Method 3 failed. Trying broad search on releases page..."
+            LATEST_VERSION=$(curl -s --retry 3 --retry-delay 5 https://developer.android.com/studio/releases \
+              | grep -oP '\d{4}\.\d+\.\d+' \
+              | sort -V | tail -n1)
+          fi
+
+          # Clean up temp files
+          rm -f releases.html studio.html
 
           if [ -z "$LATEST_VERSION" ]; then
             echo "ERROR: Failed to fetch the latest version from all sources."
+            echo "Debug: Last 200 chars of releases page:"
+            curl -s https://developer.android.com/studio/releases | tail -c 200
             exit 1
           fi
 
           echo "Latest available version: $LATEST_VERSION"
 
-          # Validate version format (e.g., YYYY.M.N or YYYY.M.N.P)
+          # Validate version format (e.g., YYYY.M.N)
           if ! echo "$LATEST_VERSION" | grep -qE '^[0-9]{4}\.[0-9]+\.[0-9]+$'; then
             echo "ERROR: Invalid version format: $LATEST_VERSION"
             exit 1
           fi
 
-          # Get current version from spec file
+          # Get current version from spec file (trim whitespace)
           CURRENT_VERSION=$(grep -i "^Version:" "$SPEC_FILE" | awk '{print $2}' | tr -d '[:space:]')
           echo "Current spec file version: $CURRENT_VERSION"
 
