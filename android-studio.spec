@@ -1,3 +1,4 @@
+Version: 2025.1.3
     Name:           android-studio
     Version:        2025.1.2
     Release:        1
