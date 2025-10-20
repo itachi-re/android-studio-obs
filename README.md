@@ -1,7 +1,7 @@
 # 🚀 Automated Android Studio RPM Packager for OBS
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/itachi-re/android-studio-obs/updater.yml?branch=main)](https://github.com/itachi-re/android-studio-obs/actions)
-[![Open Build Service](https://img.shields.io/badge/OBS-Package-blue)](https://build.opensuse.org/package/show/home:itachi_re/android-studio/android-studio)
+[![Open Build Service](https://img.shields.io/badge/OBS-Package-blue)](https://build.opensuse.org/package/show/home:itachi_re/android-studio/android-studio](https://build.opensuse.org/projects/home:itachi_re/packages/android-studio/repositories/openSUSE_Tumbleweed/binaries))
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 This project provides **fully automated RPM packaging** for the latest stable version of Android Studio, specifically designed for Open Build Service (OBS) and compatible Linux distributions (openSUSE, Fedora, etc.).
