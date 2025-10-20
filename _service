@@ -1,7 +1,7 @@
 <services>
   <service name="obs_scm">
     <param name="scm">git</param>
-    <param name="url">https://github.com/itachi-re/android-studio-obs.git</param> <!-- Replace with your git repo -->
+    <param name="url">https://github.com/itachi-re/android-studio-obs.git</param>
     <param name="revision">main</param>
     <param name="extract">android-studio.spec</param>
   </service>
