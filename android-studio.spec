@@ -1,6 +1,6 @@
 Version: 2025.1.4
     Name:           android-studio
-    Version:        2025.1.2
+    Version:        2025.1.4.8
     Release:        1
     Summary:        The official IDE for Android application development
     License:        Android Studio License Agreement
