@@ -23,10 +23,14 @@ jobs:
       - name: Fetch Latest Version from Google
         id: remote
         run: |
-          # Scrape the main download page (not the release notes)
-          # Find the exact linux.tar.gz file and extract the version from its name
+          # 
+          # --- THIS IS THE CORRECTED COMMAND ---
+          #
+          # This regex is more robust. It looks for "android-studio-" followed by
+          # any characters that are NOT a hyphen [^-]*, and then "-linux.tar.gz".
+          # This correctly captures the full version string.
           LATEST_VERSION=$(curl -sL https://developer.android.com/studio | \
-                           grep -o 'android-studio-[0-9.]*-linux.tar.gz' | \
+                           grep -o 'android-studio-[^-]*-linux.tar.gz' | \
                            sed -e 's/android-studio-//' -e 's/-linux.tar.gz//' | \
                            head -n 1)
           
