@@ -1,9 +1,18 @@
 name: Check for Android Studio Updates
 
 on:
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *' # Runs daily at 08:00 UTC
+    - cron: '0 8 * * *'
+
+#
+# --- ADD THIS BLOCK ---
+# Give the workflow permission to write to the repository
+permissions:
+  contents: write
+#
+# --- END OF BLOCK ---
+#
 
 jobs:
   check-version:
@@ -15,7 +24,6 @@ jobs:
       - name: Get Current Version from Spec
         id: spec
         run: |
-          # Get the current version from your spec file
           CURRENT_VERSION=$(grep -i '^Version:' android-studio.spec | awk '{print $2}')
           echo "Current spec version: $CURRENT_VERSION"
           echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
@@ -23,12 +31,6 @@ jobs:
       - name: Fetch Latest Version from Google
         id: remote
         run: |
-          # 
-          # --- THIS IS THE CORRECTED COMMAND ---
-          #
-          # This regex is more robust. It looks for "android-studio-" followed by
-          # any characters that are NOT a hyphen [^-]*, and then "-linux.tar.gz".
-          # This correctly captures the full version string.
           LATEST_VERSION=$(curl -sL https://developer.android.com/studio | \
                            grep -o 'android-studio-[^-]*-linux.tar.gz' | \
                            sed -e 's/android-studio-//' -e 's/-linux.tar.gz//' | \
@@ -57,7 +59,6 @@ jobs:
       - name: Update Spec File and Push
         if: steps.compare.outputs.update == 'true'
         run: |
-          # Set up Git for the bot
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
@@ -66,13 +67,9 @@ jobs:
           
           echo "Updating spec file from $OLD_VER to $NEW_VER..."
           
-          # Use sed to replace the Version tag
           sed -i "s/^Version:.*$OLD_VER/Version:        $NEW_VER/" android-studio.spec
-          
-          # Use sed to reset the Release tag to 1 for the new version
           sed -i "s/^Release:.*$/Release:        1/" android-studio.spec
           
-          # Commit and push the changes
           git add android-studio.spec
           git commit -m "Automated version bump to $NEW_VER"
           git push
