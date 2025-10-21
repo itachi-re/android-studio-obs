@@ -4,15 +4,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 8 * * *'
+  push: # <-- NEW: Runs the workflow on every push to the main branch
+    branches:
+      - main
 
-#
-# --- ADD THIS BLOCK ---
-# Give the workflow permission to write to the repository
 permissions:
   contents: write
-#
-# --- END OF BLOCK ---
-#
 
 jobs:
   check-version:
@@ -47,12 +44,26 @@ jobs:
       - name: Compare Versions
         id: compare
         run: |
-          echo "Comparing versions..."
-          if [ "${{ steps.spec.outputs.version }}" == "${{ steps.remote.outputs.version }}" ]; then
+          # --- THIS STEP IS UPGRADED ---
+          # It now uses 'sort -V' for a safe, reliable version comparison
+          # This prevents downgrading your manual updates
+          
+          SPEC_VER="${{ steps.spec.outputs.version }}"
+          REMOTE_VER="${{ steps.remote.outputs.version }}"
+          
+          echo "Spec version: $SPEC_VER"
+          echo "Remote version: $REMOTE_VER"
+          
+          if [ "$SPEC_VER" == "$REMOTE_VER" ]; then
             echo "Versions are the same. No update needed."
             echo "update=false" >> $GITHUB_OUTPUT
+          elif [ "$(printf '%s\n' "$SPEC_VER" "$REMOTE_VER" | sort -V | head -n 1)" == "$REMOTE_VER" ]; then
+            # If sort -V puts the remote version first, it's older than the spec version
+            echo "Spec version is newer than remote. No update needed."
+            echo "update=false" >> $GITHUB_OUTPUT
           else
-            echo "New version found! Proceeding with update."
+            # The remote version is newer than the spec version
+            echo "Newer remote version found! Proceeding with update."
             echo "update=true" >> $GITHUB_OUTPUT
           fi
 
