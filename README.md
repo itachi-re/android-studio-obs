@@ -50,7 +50,7 @@ Install Android Studio from the OBS repository:
 
 ```bash
 # Add the repository (replace with your OBS repo URL)
-sudo zypper addrepo https://download.opensuse.org/repositories/home:username/openSUSE_Tumbleweed/home:username.repo
+sudo zypper addrepo https://download.opensuse.org/repositories/home:/itachi_re/openSUSE_Tumbleweed/home:itachi_re.repo
 sudo zypper refresh
 sudo zypper install android-studio
 ```
