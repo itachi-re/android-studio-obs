@@ -77,7 +77,7 @@ jobs:
           # Safely update the Version field
           sed -i "s/^Version:.*$OLD_VER/Version:        $NEW_VER/" android-studio.spec
           
-          # Reset Release to 0 for the new version
+          # Reset Release to 0 or 1 for the new version
           sed -i "s/^Release:.*$/Release:        0/" android-studio.spec
           
           git add android-studio.spec
