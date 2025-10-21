@@ -49,7 +49,7 @@ graph TB
 Install Android Studio from the OBS repository:
 
 ```bash
-# Add the repository (replace with your OBS repo URL)
+# Add the repository 
 sudo zypper addrepo https://download.opensuse.org/repositories/home:/itachi_re/openSUSE_Tumbleweed/home:itachi_re.repo
 sudo zypper refresh
 sudo zypper install android-studio
@@ -89,8 +89,8 @@ osc meta pkg -e your_project android-studio
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
+git clone https://github.com/itachi-re/android-studio-obs/
+cd android-studio-obs
 
 # Test the update script
 chmod +x update.sh
@@ -117,7 +117,7 @@ The `_service` file controls how OBS interacts with this repository:
 
 ```xml
 <service name="obs_scm">
-  <param name="url">https://github.com/YOUR_USERNAME/YOUR_REPO</param>
+  <param name="url">https://github.com/itachi-re/android-studio-obs/</param>
   <param name="filename">android-studio.spec</param>
   <param name="revision">main</param>
 </service>
