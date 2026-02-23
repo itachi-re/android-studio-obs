@@ -5,7 +5,7 @@ Name:           android-studio
 Version:        2025.3.1.8
 Release:        0
 Summary:        The official Android IDE
-Source0:        https://redirector.gvt1.com/edgedl/android/studio/ide-zips/%{version}/%{name}-%{studio_codename}-%{studio_patch}-linux.tar.gz
+Source0:        https://edgedl.me.gvt1.com/android/studio/ide-zips/%{version}/%{name}-%{studio_codename}-%{studio_patch}-linux.tar.gz
 Source1:        android-studio.rpmlintrc
 License:        Apache-2.0
 BuildRequires:  bsdtar
