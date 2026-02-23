@@ -19,9 +19,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
       - name: Get Current Version from Spec
         id: spec
         run: |
@@ -36,25 +33,35 @@ jobs:
       - name: Fetch Latest Version from Google
         id: remote
         run: |
-          echo "Downloading Android Studio metadata..."
+          echo "Fetching Android Studio page..."
 
-          JSON=$(curl -fsSL https://developer.android.com/studio/archive.json)
+          PAGE=$(curl -fsSL https://developer.android.com/studio)
 
-          if [ -z "$JSON" ]; then
-            echo "Failed to download archive.json"
+          if [ -z "$PAGE" ]; then
+            echo "Failed to download page"
             exit 1
           fi
 
-          # Get latest stable release
-          LATEST_VERSION=$(echo "$JSON" | jq -r '.releases[0].version')
+          # Extract first Linux tar.gz filename
+          FILE=$(echo "$PAGE" | grep -o 'android-studio-[^"]*-linux\.tar\.gz' | head -n 1)
 
-          if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
-            echo "Failed to parse latest version"
+          if [ -z "$FILE" ]; then
+            echo "Could not find linux tar.gz link"
             exit 1
           fi
 
-          echo "Latest remote version: $LATEST_VERSION"
-          echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "Found file: $FILE"
+
+          # Extract numeric version from directory in download link
+          VERSION=$(echo "$PAGE" | grep -o 'ide-zips/[0-9.]\+/android-studio-[^"]*-linux\.tar\.gz' | head -n 1 | cut -d'/' -f2)
+
+          if [ -z "$VERSION" ]; then
+            echo "Failed to extract numeric version"
+            exit 1
+          fi
+
+          echo "Latest numeric version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Compare Versions
         id: compare
@@ -65,12 +72,9 @@ jobs:
           echo "Spec version: $SPEC_VER"
           echo "Remote version: $REMOTE_VER"
 
-          # sort -V ensures correct semantic comparison
           if [ "$(printf '%s\n' "$SPEC_VER" "$REMOTE_VER" | sort -V | tail -n 1)" = "$REMOTE_VER" ] && [ "$SPEC_VER" != "$REMOTE_VER" ]; then
-            echo "New version detected."
             echo "update=true" >> $GITHUB_OUTPUT
           else
-            echo "No update required."
             echo "update=false" >> $GITHUB_OUTPUT
           fi
 
@@ -81,8 +85,6 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
           NEW_VER="${{ steps.remote.outputs.version }}"
-
-          echo "Updating spec to version $NEW_VER"
 
           sed -i "s/^Version:.*/Version:        $NEW_VER/" android-studio.spec
           sed -i "s/^Release:.*/Release:        0/" android-studio.spec
