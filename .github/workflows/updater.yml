@@ -68,19 +68,12 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          OLD_VER="${{ steps.spec.outputs.version }}"
+
           NEW_VER="${{ steps.remote.outputs.version }}"
-          
-          echo "Updating spec file from $OLD_VER to $NEW_VER..."
-          
-          # Safely update the Version field
-          sed -i "s/^Version:.*$OLD_VER/Version:        $NEW_VER/" android-studio.spec
-          
-          # Reset Release to 0 or 1 for the new version
-          sed -i "s/^Release:.*$/Release:        0/" android-studio.spec
-          
+
+          sed -i "s/^Version:.*/Version:        $NEW_VER/" android-studio.spec
+          sed -i "s/^Release:.*/Release:        0/" android-studio.spec
+
           git add android-studio.spec
           git commit -m "Automated version bump to $NEW_VER"
           git push
-          echo "Pushed updated spec file to repository."
