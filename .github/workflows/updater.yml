@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 8 * * *'
-  push: # Runs the workflow on every push to the main branch
+  push:
     branches:
       - main
 
@@ -14,21 +14,29 @@ permissions:
 jobs:
   check-version:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Get Current Version from Spec
         id: spec
         run: |
-          CURRENT_VERSION=$(grep -i '^Version:' android-studio.spec | awk '{print $2}')
+          CURRENT_VERSION=$(grep -E '^Version:' android-studio.spec | awk '{print $2}')
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Could not extract Version from spec"
+            exit 1
+          fi
           echo "Current spec version: $CURRENT_VERSION"
           echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Fetch Latest Version from Google
         id: remote
         run: |
-          echo "Fetching release metadata..."
+          echo "Downloading Android Studio metadata..."
 
           JSON=$(curl -fsSL https://developer.android.com/studio/archive.json)
 
@@ -37,7 +45,7 @@ jobs:
             exit 1
           fi
 
-          # Extract latest stable release version
+          # Get latest stable release
           LATEST_VERSION=$(echo "$JSON" | jq -r '.releases[0].version')
 
           if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
@@ -51,30 +59,30 @@ jobs:
       - name: Compare Versions
         id: compare
         run: |
-          # This uses 'sort -V' for a safe, reliable version comparison.
-          # This prevents the action from downgrading a manual update.
           SPEC_VER="${{ steps.spec.outputs.version }}"
           REMOTE_VER="${{ steps.remote.outputs.version }}"
-          
+
           echo "Spec version: $SPEC_VER"
           echo "Remote version: $REMOTE_VER"
-          
-          # Check if the remote version is newer than the spec version
-          if [ "$(printf '%s\n' "$SPEC_VER" "$REMOTE_VER" | sort -V | tail -n 1)" == "$REMOTE_VER" ] && [ "$SPEC_VER" != "$REMOTE_VER" ]; then
-            echo "Newer remote version found! Proceeding with update."
+
+          # sort -V ensures correct semantic comparison
+          if [ "$(printf '%s\n' "$SPEC_VER" "$REMOTE_VER" | sort -V | tail -n 1)" = "$REMOTE_VER" ] && [ "$SPEC_VER" != "$REMOTE_VER" ]; then
+            echo "New version detected."
             echo "update=true" >> $GITHUB_OUTPUT
           else
-            echo "Spec version is the same or newer. No update needed."
+            echo "No update required."
             echo "update=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Update Spec File and Push
         if: steps.compare.outputs.update == 'true'
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
           NEW_VER="${{ steps.remote.outputs.version }}"
+
+          echo "Updating spec to version $NEW_VER"
 
           sed -i "s/^Version:.*/Version:        $NEW_VER/" android-studio.spec
           sed -i "s/^Release:.*/Release:        0/" android-studio.spec
