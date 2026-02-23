@@ -28,18 +28,23 @@ jobs:
       - name: Fetch Latest Version from Google
         id: remote
         run: |
-          # This is the most reliable method. It finds the version string directly
-          # from the download filename, which is less likely to change than other text.
-          LATEST_VERSION=$(curl -sL https://developer.android.com/studio | \
-                           grep -o 'android-studio-[^-]*-linux.tar.gz' | \
-                           sed -e 's/android-studio-//' -e 's/-linux.tar.gz//' | \
-                           head -n 1)
-          
-          if [ -z "$LATEST_VERSION" ]; then
-            echo "Failed to fetch latest version."
+          echo "Fetching release metadata..."
+
+          JSON=$(curl -fsSL https://developer.android.com/studio/archive.json)
+
+          if [ -z "$JSON" ]; then
+            echo "Failed to download archive.json"
             exit 1
           fi
-          
+
+          # Extract latest stable release version
+          LATEST_VERSION=$(echo "$JSON" | jq -r '.releases[0].version')
+
+          if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+            echo "Failed to parse latest version"
+            exit 1
+          fi
+
           echo "Latest remote version: $LATEST_VERSION"
           echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
 
