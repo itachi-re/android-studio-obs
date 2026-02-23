@@ -1,5 +1,4 @@
 name: Check for Android Studio Updates
-
 on:
   workflow_dispatch:
   schedule:
@@ -7,14 +6,11 @@ on:
   push:
     branches:
       - main
-
 permissions:
   contents: write
-
 jobs:
   check-version:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,44 +30,55 @@ jobs:
         id: remote
         run: |
           echo "Fetching Android Studio page..."
-
           PAGE=$(curl -fsSL https://developer.android.com/studio)
-
           if [ -z "$PAGE" ]; then
             echo "Failed to download page"
             exit 1
           fi
 
-          # Extract first Linux tar.gz filename
+          # Extract the full filename for the Linux tar.gz
           FILE=$(echo "$PAGE" | grep -o 'android-studio-[^"]*-linux\.tar\.gz' | head -n 1)
-
           if [ -z "$FILE" ]; then
             echo "Could not find linux tar.gz link"
             exit 1
           fi
-
           echo "Found file: $FILE"
 
-          # Extract numeric version from directory in download link
-          VERSION=$(echo "$PAGE" | grep -o 'ide-zips/[0-9.]\+/android-studio-[^"]*-linux\.tar\.gz' | head -n 1 | cut -d'/' -f2)
-
-          if [ -z "$VERSION" ]; then
-            echo "Failed to extract numeric version"
+          # Extract numeric directory version from the download path
+          DIR_VERSION=$(echo "$PAGE" | grep -o 'ide-zips/[0-9.]\+/android-studio-[^"]*-linux\.tar\.gz' | head -n 1 | cut -d'/' -f2)
+          if [ -z "$DIR_VERSION" ]; then
+            echo "Failed to extract numeric directory version"
             exit 1
           fi
+          echo "Numeric version: $DIR_VERSION"
 
-          echo "Latest numeric version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Extract codename (everything between 'android-studio-' and '-patch')
+          CODENAME=$(echo "$FILE" | sed -E 's/android-studio-([a-zA-Z0-9]+)-patch[0-9]+-linux\.tar\.gz/\1/')
+          if [ -z "$CODENAME" ]; then
+            echo "Failed to extract codename"
+            exit 1
+          fi
+          echo "Codename: $CODENAME"
+
+          # Extract patch label (e.g. patch1, patch2)
+          PATCH=$(echo "$FILE" | sed -E 's/android-studio-[a-zA-Z0-9]+-( patch[0-9]+)-linux\.tar\.gz/\1/' | sed -E 's/android-studio-[a-zA-Z0-9]+-(patch[0-9]+)-linux\.tar\.gz/\1/')
+          if [ -z "$PATCH" ]; then
+            echo "Failed to extract patch"
+            exit 1
+          fi
+          echo "Patch: $PATCH"
+
+          echo "version=$DIR_VERSION"   >> $GITHUB_OUTPUT
+          echo "codename=$CODENAME"     >> $GITHUB_OUTPUT
+          echo "patch=$PATCH"           >> $GITHUB_OUTPUT
 
       - name: Compare Versions
         id: compare
         run: |
           SPEC_VER="${{ steps.spec.outputs.version }}"
           REMOTE_VER="${{ steps.remote.outputs.version }}"
-
-          echo "Spec version: $SPEC_VER"
+          echo "Spec version:   $SPEC_VER"
           echo "Remote version: $REMOTE_VER"
-
           if [ "$(printf '%s\n' "$SPEC_VER" "$REMOTE_VER" | sort -V | tail -n 1)" = "$REMOTE_VER" ] && [ "$SPEC_VER" != "$REMOTE_VER" ]; then
             echo "update=true" >> $GITHUB_OUTPUT
           else
@@ -81,14 +88,18 @@ jobs:
       - name: Update Spec File and Push
         if: steps.compare.outputs.update == 'true'
         run: |
-          git config --global user.name "github-actions[bot]"
+          git config --global user.name  "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
           NEW_VER="${{ steps.remote.outputs.version }}"
+          NEW_CODENAME="${{ steps.remote.outputs.codename }}"
+          NEW_PATCH="${{ steps.remote.outputs.patch }}"
 
-          sed -i "s/^Version:.*/Version:        $NEW_VER/" android-studio.spec
-          sed -i "s/^Release:.*/Release:        0/" android-studio.spec
+          sed -i "s/^Version:.*/Version:        $NEW_VER/"                               android-studio.spec
+          sed -i "s/^Release:.*/Release:        0/"                                       android-studio.spec
+          sed -i "s/^%define studio_codename.*/%define studio_codename $NEW_CODENAME/"   android-studio.spec
+          sed -i "s/^%define studio_patch.*/%define studio_patch $NEW_PATCH/"            android-studio.spec
 
           git add android-studio.spec
-          git commit -m "Automated version bump to $NEW_VER"
+          git commit -m "Automated version bump to $NEW_VER ($NEW_CODENAME-$NEW_PATCH)"
           git push
