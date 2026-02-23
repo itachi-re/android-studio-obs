@@ -16,6 +16,9 @@ Requires:       libgthread-2_0-0
 ExclusiveArch:  x86_64
 AutoReqProv:    no
 
+
+%define studio_codename panda1
+%define studio_patch patch1
 # These are needed to handle the pre-compiled binaries in the source tarball
 %global debug_package %{nil}
 %define _build_create_debug 0
