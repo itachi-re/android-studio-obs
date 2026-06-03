@@ -1,9 +1,9 @@
 #
 # spec file for package android-studio
 #
-%define studio_filename android-studio-panda4-patch1-linux.tar.gz
+%define studio_filename android-studio-quail1-linux.tar.gz
 Name:           android-studio
-Version: 2025.3.4.7
+Version: 2026.1.1.8
 Release: 0
 Summary:        The official Android IDE
 Source0:      https://edgedl.me.gvt1.com/android/studio/ide-zips/%{version}/%{studio_filename}
