@@ -1,9 +1,9 @@
 #
 # spec file for package android-studio
 #
-%define studio_filename android-studio-quail1-patch2-linux.tar.gz
+%define studio_filename android-studio-quail2-linux.tar.gz
 Name:           android-studio
-Version: 2026.1.1.10
+Version: 2026.1.2.10
 Release: 0
 Summary:        The official Android IDE
 Source0:      https://edgedl.me.gvt1.com/android/studio/ide-zips/%{version}/%{studio_filename}
